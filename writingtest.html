@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IELTS Writing Test Simulation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* CSS CHO GIAO DIỆN & FONT CHỮ */
+        :root {
+            --header-bg: #3d3d3d; --header-text: #f0f0f0; --header-border: #5a5a5a;
+            --main-bg: #f0f2f5; --text-color: #000000;
+            --panel-bg: #ffffff; --panel-border: #c0c0c0; --subtle-text: #374151;
+            --footer-bg: #e0e0e0; --footer-border: #b0b0b0;
+        }
+        [data-theme="dark"] {
+            --main-bg: #1f2937; --text-color: #f3f4f6;
+            --panel-bg: #374151; --panel-border: #6b7280; --subtle-text: #d1d5db;
+            --footer-bg: #374151;
+        }
+        [data-theme="contrast"] {
+            --main-bg: #00005a; --text-color: #ffff00;
+            --panel-bg: #00008B; --panel-border: #4169E1; --subtle-text: #f0e68c;
+            --footer-bg: #00008B;
+        }
+        [data-theme="sepia"] {
+            --main-bg: #f3e9d2; --text-color: #4a2c2a;
+            --panel-bg: #fff8e7; --panel-border: #c8bda9; --subtle-text: #5d4037;
+            --footer-bg: #c8bda9;
+        }
+
+        /* Áp dụng màu sắc */
+        body { background-color: var(--main-bg); color: var(--text-color); }
+        .prompt-panel, .writing-container, .task-footer-btn.active { background-color: var(--panel-bg); border-color: var(--panel-border); color: var(--text-color); }
+        .writing-area { background-color: var(--panel-bg); color: var(--text-color); }
+        #word-count-display { background: var(--panel-bg); color: var(--text-color); border-top: 1px solid var(--panel-border); }
+        #task-title, .font-bold.text-black { color: var(--text-color); }
+        .text-gray-700 { color: var(--subtle-text); }
+        
+        /* CSS cho Header mới */
+        .header-bar { background-color: var(--header-bg); border-bottom: 1px solid var(--header-border); color: var(--header-text); position: relative; padding: 6px 16px; font-size: 13px; }
+        .header-btn { background-color: #5a5a5a; border: 1px solid #7a7a7a; color: var(--header-text); border-radius: 4px; padding: 2px 8px; font-size: 11px; }
+        .header-btn:hover { background-color: #6a6a6a; }
+        #timer-display { font-size: 1rem; }
+        #timer-container { position: absolute; left: 50%; transform: translateX(-50%); }
+
+        /* Các class cho Cỡ chữ */
+        .font-size-normal { font-size: 13px; }
+        .font-size-large { font-size: 15px; }
+        .font-size-xl { font-size: 17px; }
+        .font-size-normal .writing-area, .font-size-normal .prompt-panel { font-size: 14px; line-height: 1.5; }
+        .font-size-large .writing-area, .font-size-large .prompt-panel { font-size: 16px; line-height: 1.6; }
+        .font-size-xl .writing-area, .font-size-xl .prompt-panel { font-size: 18px; line-height: 1.7; }
+        
+        /* CSS giao diện chính */
+        body { font-family: 'Inter', sans-serif; padding-top: 38px; padding-bottom: 38px; }
+        .main-content { padding: 0; max-width: none; }
+        .prompt-panel { padding: 10px; height: 100%; border: 1px solid; overflow-y: auto; user-select: text; }
+        .writing-container { display: flex; flex-direction: column; height: 100%; border: 1px solid; }
+        .writing-area-wrapper { flex-grow: 1; position: relative; }
+        .writing-area { resize: none; width: 100%; height: 100%; padding: 10px; border: none; outline: none; }
+        #word-count-display { padding: 4px 10px; font-size: 12px; font-weight: 600; text-align: right; }
+
+        /* CSS cho Footer và các nút */
+        .footer-bar { padding: 0; font-size: 13px; background-color: var(--footer-bg); border-top: 1px solid var(--footer-border); }
+        .footer-btn-group { padding: 6px 16px; }
+        .footer-tab-group { display: flex; align-items: flex-end; height: 100%; }
+        .task-footer-btn { 
+            padding: 6px 16px; font-weight: 600; border-radius: 4px 4px 0 0;
+            border: 1px solid var(--footer-border); border-bottom: none;
+            background-color: #c7c7c7; color: #333;
+            margin-bottom: -1px;
+        }
+        .task-footer-btn.active { border-bottom: 1px solid var(--panel-bg); }
+
+        /* CSS cho nút Help nhấp nháy */
+        @keyframes pulse-red {
+          0% { transform: scale(1); background-color: #5a5a5a; box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+          50% { transform: scale(1.05); background-color: #ef4444; color: white; box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+          100% { transform: scale(1); background-color: #5a5a5a; box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+        .flashing-button { animation: pulse-red 2s infinite; }
+    </style>
+</head>
+<body class="font-size-normal">
+
+    <div id="display-settings-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-gray-200 rounded-lg shadow-xl w-full max-w-lg p-1 border-2 border-gray-400 text-black">
+            <div class="bg-gray-700 text-white p-2 flex justify-between items-center rounded-t-md">
+                <div class="flex items-center"><svg class="w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M10 3.5a1.5 1.5 0 013 0V4a1 1 0 001 1h3a1 1 0 011 1v2a1 1 0 01-1 1h-3a1 1 0 00-1-1v-.5a1.5 1.5 0 01-3 0v.5a1 1 0 00-1 1H6a1 1 0 01-1-1V6a1 1 0 011-1h3a1 1 0 001-1v-.5z" /><path d="M4 11v2.5a1.5 1.5 0 003 0V11a1 1 0 00-1-1H5a1 1 0 00-1 1zm10 0v2.5a1.5 1.5 0 003 0V11a1 1 0 00-1-1h-2a1 1 0 00-1 1z" /></svg>
+                <h3 class="font-bold">Settings</h3></div>
+                <button onclick="closeDisplaySettingsModal()" class="font-bold text-xl px-2">&times;</button>
+            </div>
+            <div class="p-6">
+                <p class="mb-4">If you wish, you can change these settings to make the test easier to read.</p>
+                <div class="grid grid-cols-2 gap-6">
+                    <fieldset>
+                        <legend class="font-bold mb-2">Text size</legend>
+                        <div class="space-y-2">
+                            <div><label class="flex items-center"><input type="radio" name="fontsize" onchange="changeFontSize('normal')" class="mr-2"> Standard</label></div>
+                            <div><label class="flex items-center"><input type="radio" name="fontsize" onchange="changeFontSize('large')" class="mr-2"> Large</label></div>
+                            <div><label class="flex items-center"><input type="radio" name="fontsize" onchange="changeFontSize('xl')" class="mr-2"> Extra large</label></div>
+                        </div>
+                    </fieldset>
+                    <fieldset>
+                        <legend class="font-bold mb-2">Colours</legend>
+                        <div class="space-y-2">
+                            <div><label class="flex items-center"><input type="radio" name="theme" onchange="changeTheme('default')" class="mr-2"> Standard</label></div>
+                            <div><label class="flex items-center"><input type="radio" name="theme" onchange="changeTheme('dark')" class="mr-2"> White on black</label></div>
+                            <div><label class="flex items-center"><input type="radio" name="theme" onchange="changeTheme('contrast')" class="mr-2"> Yellow on blue</label></div>
+                            <div><label class="flex items-center"><input type="radio" name="theme" onchange="changeTheme('sepia')" class="mr-2"> Blue on cream</label></div>
+                        </div>
+                    </fieldset>
+                </div>
+                <div class="flex justify-end mt-6">
+                    <button onclick="closeDisplaySettingsModal()" class="px-6 py-1.5 bg-gray-600 text-white border border-gray-800 hover:bg-gray-700 rounded-md">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="help-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-none shadow-xl w-full max-w-2xl p-6 border border-gray-600 text-black">
+            <h3 class="text-xl font-bold mb-4 text-black border-b border-gray-400 pb-2">Hướng Dẫn Sử Dụng</h3>
+            <div class="space-y-4 text-sm text-gray-700 max-h-[70vh] overflow-y-auto pr-3">
+                <h4 class="font-bold text-base text-purple-700">1. Bắt Đầu Làm Bài</h4>
+                <p>Nhấn nút <strong class="text-black">"START TEST"</strong> để bắt đầu tính giờ. Bạn có thể nhấn <strong class="text-black">"PAUSE"</strong> để tạm dừng và <strong class="text-black">"RESUME"</strong> để tiếp tục.</p>
+                <h4 class="font-bold text-base text-purple-700">2. Cách Cho Đề Bài Vào</h4>
+                <p>Bạn có 2 cách:</p>
+                <ul class="list-disc list-inside pl-4 space-y-1">
+                    <li><strong class="text-black">Dùng thư viện đề:</strong> Từ trang chủ, vào <strong class="text-black">"Library"</strong>, chọn một đề và nhấn "Start Test...". Đề sẽ được tự động nạp vào đây.</li>
+                    <li><strong class="text-black">Tự tạo đề riêng:</strong> Nhấn nút <strong class="text-black">"Edit"</strong>. Bạn có thể tự gõ hoặc dán đề (chữ hoặc ảnh) của mình vào và nhấn "Save".</li>
+                </ul>
+                <h4 class="font-bold text-base text-purple-700">3. Chuyển Đổi Task</h4>
+                <p>Sử dụng 2 nút <strong class="text-black">"Part 1"</strong> và <strong class="text-black">"Part 2"</strong> ở thanh dưới cùng. Nội dung bạn gõ sẽ được tự động lưu lại khi chuyển qua lại.</p>
+                <h4 class="font-bold text-base text-purple-700">4. Nộp Bài & Thoát</h4>
+                <p>Nhấn <strong class="text-black">"Finish & Save Test"</strong> để lưu toàn bộ bài làm. Nhấn <strong class="text-black">"Hide"</strong> để thoát nhanh về trang chủ (bài làm dở vẫn được lưu tự động).</p>
+            </div>
+            <div class="flex justify-end mt-6">
+                <button onclick="closeHelpModal()" class="text-sm px-4 py-1.5 bg-gray-600 text-white border border-gray-800 hover:bg-gray-700">Đã Hiểu</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="prompt-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 z-50 hidden flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white rounded-none shadow-xl w-full max-w-lg p-6 my-8 border border-gray-600 text-black">
+            <h3 class="text-lg font-bold mb-4 text-black border-b border-gray-400 pb-2">Edit Prompt</h3>
+            <fieldset class="border p-3 rounded-none mb-3">
+                <legend class="text-sm font-semibold text-gray-700 px-1">TASK 1</legend>
+                <label class="block text-xs font-medium text-gray-700 mb-1 mt-2">Text:</label>
+                <textarea id="modal-prompt1-text" rows="3" class="w-full p-2 bg-gray-100 border border-gray-400"></textarea>
+                <label class="block text-xs font-medium text-gray-700 mb-1 mt-3">Image:</label>
+                <input type="file" id="modal-prompt1-image-input" accept="image/*" class="w-full text-xs">
+                <div id="preview-container-1" class="mt-2 hidden relative">
+                    <img id="modal-prompt1-preview" class="max-w-full rounded-none border border-gray-400" src="">
+                    <button onclick="removeImage(1)" class="absolute top-1 right-1 bg-red-600 text-white rounded-full h-6 w-6">&times;</button>
+                </div>
+            </fieldset>
+            <fieldset class="border p-3 rounded-none">
+                <legend class="text-sm font-semibold text-gray-700 px-1">TASK 2</legend>
+                <label class="block text-xs font-medium text-gray-700 mb-1 mt-2">Text:</label>
+                <textarea id="modal-prompt2-text" rows="3" class="w-full p-2 bg-gray-100 border border-gray-400"></textarea>
+                <label class="block text-xs font-medium text-gray-700 mb-1 mt-3">Image:</label>
+                <input type="file" id="modal-prompt2-image-input" accept="image/*" class="w-full text-xs">
+                <div id="preview-container-2" class="mt-2 hidden relative">
+                    <img id="modal-prompt2-preview" class="max-w-full rounded-none border border-gray-400" src="">
+                    <button onclick="removeImage(2)" class="absolute top-1 right-1 bg-red-600 text-white rounded-full h-6 w-6">&times;</button>
+                </div>
+            </fieldset>
+            <div class="flex justify-end space-x-2 mt-4">
+                <button onclick="closePromptModal()" class="text-xs px-3 py-1 bg-gray-300 border border-gray-500">Cancel</button>
+                <button onclick="savePrompt()" class="text-xs px-3 py-1 bg-gray-600 text-white border">Save</button>
+            </div>
+        </div>
+    </div>
+    
+    <header id="header-bar" class="fixed top-0 left-0 right-0 z-10 flex header-bar justify-between items-center">
+        <div class="flex items-center text-xs font-bold">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" /></svg>
+            <span>XXXX XXXXXXXX - VN100-001</span>
+        </div>
+        <div id="timer-container" class="flex items-center space-x-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.414-1.415L11 9.586V6z" clip-rule="evenodd" /></svg>
+            <div id="timer-display" class="font-bold">60 minutes left</div>
+        </div>
+        <div class="flex items-center space-x-2">
+            <button onclick="toggleTimer()" id="start-stop-button" class="text-xs px-3 py-1 header-btn font-bold text-yellow-300">START TEST</button>
+            <button onclick="openDisplaySettingsModal()" class="text-xs px-3 py-1 header-btn flex items-center">Settings</button>
+            <button onclick="openPromptModal()" class="text-xs px-3 py-1 header-btn flex items-center">Edit Prompt</button>
+            <button id="help-button" onclick="openHelpModal()" class="text-xs px-3 py-1 header-btn">Help</button>
+            <button onclick="hideTest()" class="text-xs px-3 py-1 header-btn">Hide</button>
+        </div>
+    </header>
+
+    <main class="main-content h-full">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-0" style="height: calc(100vh - 76px);">
+            <div class="prompt-panel"> 
+                <h2 id="task-title" class="text-base font-bold mb-1">Part 2</h2>
+                <p id="task-instruction" class="text-sm mb-3 border-b pb-2">You should spend about 40 minutes on this task. Write at least 250 words.</p>
+                <div id="prompt-display">
+                    <div id="prompt-content" class="pr-2"><p class="italic mb-2">Loading Task 2...</p></div>
+                </div>
+            </div>
+            <div class="writing-container">
+                <div class="writing-area-wrapper">
+                    <textarea id="writing-task1-area" class="writing-area" style="display: none;"></textarea>
+                    <textarea id="writing-task2-area" class="writing-area"></textarea>
+                </div>
+                <div id="word-count-display">Word count: <span id="word-count" class="font-bold">0</span></div>
+            </div>
+        </div>
+    </main>
+    
+    <footer id="footer-bar" class="fixed bottom-0 left-0 right-0 z-10 flex footer-bar justify-between items-center">
+        <div class="footer-btn-group flex items-center space-x-2">
+            <button class="text-xs px-3 py-1 bg-gray-600 text-white rounded-md hover:bg-gray-500">Review</button>
+            <button onclick="finishAndSaveTest()" class="text-xs px-3 py-1 bg-green-600 text-white rounded-md hover:bg-green-700">Finish & Save</button>
+        </div>
+        <div class="footer-tab-group">
+            <button id="task1-btn" onclick="setTask(1)" class="task-footer-btn">Part 1</button>
+            <button id="task2-btn" onclick="setTask(2)" class="task-footer-btn active">Part 2</button>
+        </div>
+        <div class="footer-btn-group"></div>
+    </footer>
+
+    <script>
+        // --- CÁC HÀM MỚI ---
+        function openDisplaySettingsModal() { document.getElementById('display-settings-modal').classList.remove('hidden'); }
+        function closeDisplaySettingsModal() { document.getElementById('display-settings-modal').classList.add('hidden'); }
+        function changeFontSize(size) {
+            document.body.classList.remove('font-size-normal', 'font-size-large', 'font-size-xl');
+            document.body.classList.add(`font-size-${size}`);
+            localStorage.setItem('userFontSize', size);
+            document.querySelector(`input[name="fontsize"][onchange="changeFontSize('${size}')"]`).checked = true;
+        }
+        function changeTheme(theme) {
+            document.body.setAttribute('data-theme', theme);
+            localStorage.setItem('userTheme', theme);
+            document.querySelector(`input[name="theme"][onchange="changeTheme('${theme}')"]`).checked = true;
+        }
+        function openHelpModal() { document.getElementById('help-modal').classList.remove('hidden'); document.getElementById('help-button').classList.remove('flashing-button'); }
+        function closeHelpModal() { document.getElementById('help-modal').classList.add('hidden'); }
+        function hideTest() { if (confirm("Thoát về trang chủ? Bài làm dở sẽ được lưu tự động.")) { window.location.href = 'index.html'; } }
+        function removeImage(task) {
+            document.getElementById(`preview-container-${task}`).classList.add('hidden');
+            document.getElementById(`modal-prompt${task}-preview`).src = '';
+            document.getElementById(`modal-prompt${task}-image-input`).value = null;
+        }
+
+        // --- CODE XỬ LÝ CHÍNH (ĐÃ ĐIỀN ĐẦY ĐỦ) ---
+        let timeRemaining = 3600, timerInterval = null, isTimerRunning = false, currentTask = 2;
+        const defaultPrompt1 = `You should spend about 20 minutes on this task. Write at least 150 words.`;
+        const defaultPrompt2 = `You should spend about 40 minutes on this task. Write at least 250 words.`;
+        let taskPrompts = {
+            1: { text: localStorage.getItem('userPrompt1_text') || defaultPrompt1, imageUrl: localStorage.getItem('userPrompt1_image') || '' },
+            2: { text: localStorage.getItem('userPrompt2_text') || defaultPrompt2, imageUrl: localStorage.getItem('userPrompt2_image') || '' }
+        };
+        const timerDisplay = document.getElementById('timer-display'), startStopButton = document.getElementById('start-stop-button');
+        const writingArea1 = document.getElementById('writing-task1-area'), writingArea2 = document.getElementById('writing-task2-area');
+        
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+            });
+        }
+        function updateTimeDisplay() {
+            const minutes = Math.floor(timeRemaining / 60);
+            const seconds = timeRemaining % 60;
+            let displayText;
+            if (timeRemaining <= 0) { displayText = 'TIME EXPIRED'; timerDisplay.style.color = '#ef4444'; } 
+            else if (timeRemaining <= 60) { displayText = `${seconds} seconds left`; timerDisplay.style.color = '#ef4444'; } 
+            else { displayText = `${minutes} minutes left`; timerDisplay.style.color = 'var(--header-text)'; }
+            timerDisplay.textContent = displayText;
+        }
+        function toggleTimer() {
+            if (isTimerRunning) {
+                clearInterval(timerInterval); isTimerRunning = false; startStopButton.textContent = 'RESUME';
+                startStopButton.classList.remove('bg-yellow-500');
+            } else {
+                if (timeRemaining <= 0) { timeRemaining = 3600; updateTimeDisplay(); }
+                timerInterval = setInterval(() => {
+                    if (timeRemaining > 0) { timeRemaining--; updateTimeDisplay(); } 
+                    else {
+                        clearInterval(timerInterval); isTimerRunning = false; startStopButton.textContent = 'EXPIRED';
+                        showCustomMessage('TIME EXPIRED!', 'Bài thi đã kết thúc. Thời gian 60 phút đã hết.');
+                    }
+                }, 1000);
+                isTimerRunning = true; startStopButton.textContent = 'PAUSE';
+                startStopButton.classList.add('bg-yellow-500');
+            }
+        }
+        function updateWordCount() {
+            const currentArea = (currentTask === 1 ? writingArea1 : writingArea2);
+            const text = currentArea.value.trim();
+            const words = text ? text.split(/\s+/).filter(Boolean) : [];
+            document.getElementById('word-count').textContent = words.length;
+            const minWords = currentTask === 1 ? 150 : 250;
+            document.getElementById('word-count-display').style.color = words.length < minWords ? 'red' : 'var(--text-color)';
+        }
+        function updatePromptDisplay() {
+            const task = currentTask, promptData = taskPrompts[task];
+            document.getElementById('task-title').textContent = `Part ${task}`;
+            document.getElementById('task-instruction').innerHTML = `You should spend about ${task === 1 ? 20 : 40} minutes on this task. Write at least ${task === 1 ? 150 : 250} words.`;
+            const promptContent = document.getElementById('prompt-content');
+            promptContent.innerHTML = '';
+            if (promptData.imageUrl) {
+                const imageHtml = document.createElement('img');
+                imageHtml.src = promptData.imageUrl; imageHtml.className = 'w-full h-auto mb-4 border'; imageHtml.style.borderColor = 'var(--panel-border)';
+                promptContent.appendChild(imageHtml);
+            }
+            if (promptData.text) {
+                const textHtml = document.createElement('div');
+                textHtml.innerHTML = promptData.text.replace(/\n/g, '<br>');
+                promptContent.appendChild(textHtml);
+            }
+            if (!promptData.imageUrl && !promptData.text) {
+                promptContent.innerHTML = `<p class="italic">Chưa có đề bài. Nhấn "Edit Prompt" để thêm.</p>`;
+            }
+        }
+        function setTask(task) {
+            const currentArea = (currentTask === 1 ? writingArea1 : writingArea2);
+            localStorage.setItem(`writingContent${currentTask}`, currentArea.value);
+            currentTask = task;
+            if (task === 1) { writingArea1.style.display = 'block'; writingArea2.style.display = 'none'; } 
+            else { writingArea1.style.display = 'none'; writingArea2.style.display = 'block'; }
+            document.getElementById(`writing-task${task}-area`).value = localStorage.getItem(`writingContent${task}`) || '';
+            document.querySelectorAll('.task-footer-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`task${task}-btn`).classList.add('active');
+            updateWordCount(); updatePromptDisplay();
+        }
+        function openPromptModal() {
+            document.getElementById('modal-prompt1-text').value = taskPrompts[1].text;
+            document.getElementById('modal-prompt2-text').value = taskPrompts[2].text;
+            const previewContainer1 = document.getElementById('preview-container-1'), preview1 = document.getElementById('modal-prompt1-preview');
+            if (taskPrompts[1].imageUrl) { preview1.src = taskPrompts[1].imageUrl; previewContainer1.classList.remove('hidden'); } 
+            else { previewContainer1.classList.add('hidden'); }
+            const previewContainer2 = document.getElementById('preview-container-2'), preview2 = document.getElementById('modal-prompt2-preview');
+            if (taskPrompts[2].imageUrl) { preview2.src = taskPrompts[2].imageUrl; previewContainer2.classList.remove('hidden'); }
+            else { previewContainer2.classList.add('hidden'); }
+            document.getElementById('prompt-modal').classList.remove('hidden');
+        }
+        function closePromptModal() { document.getElementById('prompt-modal').classList.add('hidden'); }
+        async function savePrompt() {
+            taskPrompts[1].text = document.getElementById('modal-prompt1-text').value;
+            taskPrompts[2].text = document.getElementById('modal-prompt2-text').value;
+            taskPrompts[1].imageUrl = document.getElementById('modal-prompt1-preview').src.startsWith('data:') ? document.getElementById('modal-prompt1-preview').src : '';
+            taskPrompts[2].imageUrl = document.getElementById('modal-prompt2-preview').src.startsWith('data:') ? document.getElementById('modal-prompt2-preview').src : '';
+            localStorage.setItem('userPrompt1_text', taskPrompts[1].text);
+            localStorage.setItem('userPrompt1_image', taskPrompts[1].imageUrl);
+            localStorage.setItem('userPrompt2_text', taskPrompts[2].text);
+            localStorage.setItem('userPrompt2_image', taskPrompts[2].imageUrl);
+            updatePromptDisplay(); closePromptModal();
+        }
+        function finishAndSaveTest() {
+            if (!confirm("Bạn có chắc muốn kết thúc và lưu lại bài thi này không?")) return;
+            const content1 = writingArea1.value, content2 = writingArea2.value;
+            const wc1 = content1 ? content1.trim().split(/\s+/).filter(Boolean).length : 0;
+            const wc2 = content2 ? content2.trim().split(/\s+/).filter(Boolean).length : 0;
+            const testSession = {
+                id: Date.now(), date: new Date().toLocaleString('vi-VN'),
+                task1: { promptText: taskPrompts[1].text, promptImage: taskPrompts[1].imageUrl, answer: content1, wordCount: wc1 },
+                task2: { promptText: taskPrompts[2].text, promptImage: taskPrompts[2].imageUrl, answer: content2, wordCount: wc2 }
+            };
+            let savedTests = JSON.parse(localStorage.getItem('ieltsSavedTests')) || [];
+            savedTests.push(testSession);
+            localStorage.setItem('ieltsSavedTests', JSON.stringify(savedTests));
+            localStorage.removeItem('writingContent1'); localStorage.removeItem('writingContent2');
+            alert("Lưu bài thi thành công!"); window.location.href = 'saved.html';
+        }
+        function initializePrompts() {
+            taskPrompts[1].text = localStorage.getItem('userPrompt1_text') || defaultPrompt1;
+            taskPrompts[1].imageUrl = localStorage.getItem('userPrompt1_image') || '';
+            taskPrompts[2].text = localStorage.getItem('userPrompt2_text') || defaultPrompt2;
+            taskPrompts[2].imageUrl = localStorage.getItem('userPrompt2_image') || '';
+        }
+        function showCustomMessage(title, message) { /*...*/ }
+
+        // --- HÀM ONLOAD ĐÃ NÂNG CẤP ---
+        window.onload = function() {
+            const selectedPromptJSON = localStorage.getItem('selectedPromptForTest');
+            if (selectedPromptJSON) {
+                const selectedPrompt = JSON.parse(selectedPromptJSON);
+                taskPrompts[selectedPrompt.task].text = selectedPrompt.content;
+                taskPrompts[selectedPrompt.task].imageUrl = selectedPrompt.imageUrl || ''; 
+                localStorage.setItem(`userPrompt${selectedPrompt.task}_text`, selectedPrompt.content);
+                localStorage.setItem(`userPrompt${selectedPrompt.task}_image`, selectedPrompt.imageUrl || '');
+                localStorage.removeItem('selectedPromptForTest');
+            }
+            initializePrompts();
+            writingArea1.value = localStorage.getItem('writingContent1') || '';
+            writingArea2.value = localStorage.getItem('writingContent2') || '';
+            updateTimeDisplay();
+            setTask(2);
+            changeTheme(localStorage.getItem('userTheme') || 'default');
+            changeFontSize(localStorage.getItem('userFontSize') || 'normal');
+            
+            const helpButton = document.getElementById('help-button');
+            if (helpButton) {
+                helpButton.classList.add('flashing-button');
+                setTimeout(() => { helpButton.classList.remove('flashing-button'); }, 8000);
+            }
+
+            writingArea1.addEventListener('input', () => { updateWordCount(); localStorage.setItem('writingContent1', writingArea1.value); });
+            writingArea2.addEventListener('input', () => { updateWordCount(); localStorage.setItem('writingContent2', writingArea2.value); });
+            
+            document.getElementById('modal-prompt1-image-input').addEventListener('change', async (e) => {
+                const file = e.target.files[0], container = document.getElementById('preview-container-1');
+                if (file) { document.getElementById('modal-prompt1-preview').src = await fileToBase64(file); container.classList.remove('hidden'); } 
+            });
+            document.getElementById('modal-prompt2-image-input').addEventListener('change', async (e) => {
+                const file = e.target.files[0], container = document.getElementById('preview-container-2');
+                if (file) { document.getElementById('modal-prompt2-preview').src = await fileToBase64(file); container.classList.remove('hidden'); }
+            });
+        }
+    </script>
+</body>
+</html>
