@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <meta charset="UTF-8">
+    <title>Saved IELTS Tests - Your Archive</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            /* Dùng background tương tự trang chủ nhưng sẽ được làm mờ bởi lớp overlay */
+            background-image: url('bg1.png'); /* Đổi tên file nếu mày đặt tên khác */
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            background-color: #F9F8F6;
+        }
+        /* Lớp overlay mờ để làm nổi bật nội dung chính */
+        .blur-overlay {
+            background-color: rgba(255, 255, 255, 0.85); /* Nền trắng mờ */
+            backdrop-filter: blur(10px); /* Blur mạnh hơn một chút để tạo sự tách biệt */
+            min-height: calc(100vh - 80px); /* Đảm bảo phủ kín phần có nội dung */
+            padding: 2.5rem 0; /* padding trên dưới */
+            border-radius: 1rem; /* Bo góc nhẹ cho phần blur */
+            margin: 20px auto; /* Căn giữa và tạo khoảng cách */
+        }
+        details > summary {
+            list-style: none;
+        }
+        details > summary::before {
+            content: '►';
+            margin-right: 0.5rem;
+            display: inline-block;
+            transition: transform 0.2s;
+        }
+        details[open] > summary::before {
+            transform: rotate(90deg);
+        }
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+    <header class="bg-white/80 backdrop-blur-sm sticky top-0 z-50 shadow-sm">
+        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <a href="index.html" class="flex items-center">
+                <img src="logo.png" alt="Writing For Free Logo" class="h-12 w-auto"> </a>
+            <div class="flex items-center space-x-8">
+                <a href="writingtest.html" class="text-gray-600 hover:text-purple-600 transition-colors">New Test</a>
+                <a href="index.html" class="px-6 py-2 bg-purple-600 text-white rounded-full hover:bg-purple-700 transition-transform hover:scale-105 shadow-lg">
+                    Back to Home
+                </a>
+            </div>
+        </nav>
+    </header>
+
+    <div class="container mx-auto px-6 py-8">
+        <div class="blur-overlay max-w-5xl mx-auto p-6 md:p-10">
+            <h1 class="text-4xl font-bold text-gray-900 mb-8">Your Saved Essays</h1>
+            <div id="tests-list" class="space-y-8">
+                </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const testsListDiv = document.getElementById('tests-list');
+            const savedTests = JSON.parse(localStorage.getItem('ieltsSavedTests')) || [];
+
+            if (savedTests.length === 0) {
+                testsListDiv.innerHTML = `
+                    <div class="text-center py-16 px-6 bg-white rounded-2xl shadow-lg">
+                        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                        <h3 class="mt-2 text-lg font-medium text-gray-900">Nothing in your archive</h3>
+                        <p class="mt-1 text-sm text-gray-500">Looks like you haven't saved any tests yet.</p>
+                        <div class="mt-6">
+                            <a href="writingtest.html" class="inline-flex items-center px-6 py-2 border border-transparent text-base font-medium rounded-full shadow-sm text-white bg-purple-600 hover:bg-purple-700">
+                                Start your first test
+                            </a>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            savedTests.reverse().forEach(session => {
+                const sessionElement = document.createElement('div');
+                sessionElement.className = 'bg-white rounded-2xl shadow-lg border border-gray-200/50 overflow-hidden transition-all hover:shadow-xl';
+                
+                const task1PromptHtml = session.task1.promptImage 
+                    ? `<img src="${session.task1.promptImage}" alt="Task 1 Prompt" class="max-w-md border rounded-lg mt-2">`
+                    : `<pre class="bg-gray-50 p-4 rounded-lg text-sm mt-2">${session.task1.promptText || 'No prompt text.'}</pre>`;
+
+                const task2PromptHtml = session.task2.promptImage
+                    ? `<img src="${session.task2.promptImage}" alt="Task 2 Prompt" class="max-w-md border rounded-lg mt-2">`
+                    : `<pre class="bg-gray-50 p-4 rounded-lg text-sm mt-2">${session.task2.promptText || 'No prompt text.'}</pre>`;
+
+                sessionElement.innerHTML = `
+                    <div class="p-5 bg-gray-50/50 border-b flex justify-between items-center">
+                        <div>
+                            <p class="text-sm font-semibold text-purple-600">Test Session</p>
+                            <p class="text-sm text-gray-500">${session.date}</p>
+                        </div>
+                        <button onclick="deleteTest(${session.id})" class="text-sm bg-red-100 hover:bg-red-200 text-red-700 font-bold py-2 px-4 rounded-full transition-colors">Delete</button>
+                    </div>
+                    
+                    <div class="p-5 space-y-4">
+                        <details class="group">
+                            <summary class="font-semibold text-lg cursor-pointer group-hover:text-purple-600">
+                                Task 1 <span class="font-normal text-sm text-gray-500">(${session.task1.wordCount} words)</span>
+                            </summary>
+                            <div class="mt-2 pl-4 border-l-2 border-purple-200">
+                                <h4 class="font-bold text-gray-700">Prompt:</h4>
+                                ${task1PromptHtml}
+                                <h4 class="font-bold text-gray-700 mt-4">Your Answer:</h4>
+                                <pre class="bg-purple-50/50 p-4 rounded-lg mt-1 text-gray-700">${session.task1.answer || '<em>No answer for Task 1.</em>'}</pre>
+                            </div>
+                        </details>
+
+                        <details class="group" open>
+                            <summary class="font-bold text-lg cursor-pointer group-hover:text-purple-600">
+                                Task 2 <span class="font-normal text-sm text-gray-500">(${session.task2.wordCount} words)</span>
+                            </summary>
+                            <div class="mt-2 pl-4 border-l-2 border-purple-200">
+                                <h4 class="font-bold text-gray-700">Prompt:</h4>
+                                ${task2PromptHtml}
+                                <h4 class="font-bold text-gray-700 mt-4">Your Answer:</h4>
+                                <pre class="bg-purple-50/50 p-4 rounded-lg mt-1 text-gray-700">${session.task2.answer || '<em>No answer for Task 2.</em>'}</pre>
+                            </div>
+                        </details>
+                    </div>
+                `;
+                testsListDiv.appendChild(sessionElement);
+            });
+        });
+
+        function deleteTest(sessionId) {
+            if (!confirm("Chắc chắn xóa bài thi này chứ?")) return;
+
+            let savedTests = JSON.parse(localStorage.getItem('ieltsSavedTests')) || [];
+            const updatedTests = savedTests.filter(session => session.id !== sessionId);
+            localStorage.setItem('ieltsSavedTests', JSON.stringify(updatedTests));
+            window.location.reload();
+        }
+    </script>
+</body>
+</html>
