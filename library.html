@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <meta charset="UTF-8">
+    <title>Prompt Library</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #F9F8F6; }
+        .prompt-card { transition: all 0.2s ease-in-out; }
+        .prompt-card:hover { transform: translateY(-4px); box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1); }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <header class="bg-white/80 backdrop-blur-sm sticky top-0 z-50 shadow-sm">
+        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <a href="index.html" class="flex items-center">
+                <img src="logo.png" alt="Writing For Free Logo" class="h-12 w-auto"> </a>
+            <div class="hidden md:flex items-center space-x-6">
+                <a href="writingtest.html" class="text-gray-600 hover:text-purple-600 transition-colors">New Test</a>
+                <a href="library.html" class="font-bold text-purple-600">Library</a>
+                <a href="saved.html" class="text-gray-600 hover:text-purple-600 transition-colors">Saved Essays</a>
+            </div>
+            <a href="writingtest.html" class="px-6 py-2 bg-purple-600 text-white rounded-full hover:bg-purple-700 transition-transform hover:scale-105 shadow-lg">
+                Start a Test
+            </a>
+        </nav>
+    </header>
+
+    <main class="container mx-auto px-6 py-12">
+        <h1 class="text-4xl font-bold text-gray-900 mb-8">Prompt Library</h1>
+        <p class="text-gray-600 mb-8 -mt-6">Choose a prompt from our official library to start your test.</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+            <div>
+                <h2 class="text-2xl font-bold mb-4 border-b-2 pb-2">Task 1 Prompts</h2>
+                <div id="task-1-prompts" class="space-y-4">
+                    <p>Loading Task 1 prompts...</p>
+                </div>
+            </div>
+            <div>
+                <h2 class="text-2xl font-bold mb-4 border-b-2 pb-2">Task 2 Prompts</h2>
+                <div id="task-2-prompts" class="space-y-4">
+                    <p>Loading Task 2 prompts...</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-firestore-compat.js"></script>
+
+    <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-firestore-compat.js"></script>
+
+<script>
+    // --- CẤU HÌNH FIREBASE ---
+    // !!! DÁN CHÍNH XÁC firebaseConfig CỦA MÀY VÀO ĐÂY !!!
+    const firebaseConfig = {
+  	    apiKey: "AIzaSyCyxAmlZHloA7UJMir0D5dYnY9VBI8XScY",
+  	    authDomain: "writing-for-free.firebaseapp.com",
+  	    projectId: "writing-for-free",
+  	    storageBucket: "writing-for-free.firebasestorage.app",
+  	    messagingSenderId: "33573519445",
+  	    appId: "1:33573519445:web:3215b19f6ca55a4ede94dc",
+  	    measurementId: "G-HYXZJ4DK86"
+    };
+
+    // Khởi tạo Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const promptsCollection = db.collection('prompts');
+
+    // --- LOGIC CHÍNH ---
+
+    // Hàm tải và hiển thị đề từ Firebase
+    async function loadPromptsFromFirebase() {
+        const t1list = document.getElementById('task-1-prompts');
+        const t2list = document.getElementById('task-2-prompts');
+        
+        try {
+            const snapshot = await promptsCollection.orderBy('task').get();
+            
+            t1list.innerHTML = '';
+            t2list.innerHTML = '';
+
+            if (snapshot.empty) {
+                t1list.innerHTML = '<p class="text-gray-500">No Task 1 prompts found in the library.</p>';
+                t2list.innerHTML = '<p class="text-gray-500">No Task 2 prompts found in the library.</p>';
+                return;
+            }
+            
+            snapshot.forEach(doc => {
+                const prompt = doc.data();
+                const list = prompt.task === 1 ? t1list : t2list;
+                list.innerHTML += createPromptCardHTML(prompt);
+            });
+
+        } catch (error) {
+            console.error("Error fetching prompts: ", error);
+            t1list.innerHTML = '<p class="text-red-500">Failed to load prompts. Check Firebase config and security rules.</p>';
+            t2list.innerHTML = '<p class="text-red-500">Failed to load prompts.</p>';
+        }
+    }
+
+    // Hàm tạo giao diện cho từng cái thẻ đề
+    function createPromptCardHTML(prompt) {
+        const title = prompt.title || prompt.content.substring(0, 40) + '...';
+        const imageHTML = prompt.imageUrl 
+            ? `<img src="${prompt.imageUrl}" alt="Prompt image" class="w-full h-32 object-cover rounded-lg mt-3 mb-2">` 
+            : '';
+        return `
+            <div class="prompt-card bg-white p-4 rounded-xl shadow-md border">
+                <div>
+                    <p class="text-sm font-bold text-purple-700">${prompt.type}</p>
+                    <h3 class="font-semibold">${title}</h3>
+                </div>
+                ${imageHTML}
+                <p class="text-sm text-gray-600 mt-2">${prompt.content.substring(0, 100)}...</p>
+                <button onclick='window.startTestWithPrompt(${JSON.stringify(prompt)})' class="mt-3 w-full text-sm bg-gray-800 text-white font-bold py-2 px-4 rounded-full hover:bg-black">Start Test with this Prompt</button>
+            </div>
+        `;
+    }
+
+    // Hàm này không đổi, dùng để gửi đề đã chọn sang trang test
+    window.startTestWithPrompt = function(prompt) {
+        localStorage.setItem('selectedPromptForTest', JSON.stringify(prompt));
+        window.location.href = 'writingtest.html';
+    }
+
+    // Tải đề từ Firebase khi mở trang
+    document.addEventListener('DOMContentLoaded', loadPromptsFromFirebase);
+</script>
