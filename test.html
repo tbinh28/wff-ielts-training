@@ -1,0 +1,130 @@
+ <!DOCTYPE html>
+<html lang="vi">
+<head>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IELTS Writing Test Simulation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* SỬA: Toàn bộ CSS đã được tinh chỉnh lại cho giống ảnh nhất */
+        :root {
+            --header-bg: #3d3d3d; --header-text: #f0f0f0; --header-border: #5a5a5a;
+            --main-bg: #f0f2f5; --text-color: #000000;
+            --panel-bg: #ffffff; --panel-border: #c0c0c0; --subtle-text: #374151;
+            --footer-bg: #e0e0e0; --footer-border: #b0b0b0;
+        }
+        /* Các theme màu sắc giữ nguyên */
+        [data-theme="dark"] { /* ... */ }
+        [data-theme="contrast"] { /* ... */ }
+        [data-theme="sepia"] { /* ... */ }
+
+        body { 
+            background-color: var(--main-bg); 
+            color: var(--text-color);
+            font-family: 'Inter', sans-serif; 
+            padding-top: 38px; 
+            padding-bottom: 38px;
+        }
+        .prompt-panel, .writing-area { background-color: var(--panel-bg); color: var(--text-color); border-color: var(--panel-border); }
+        #task-title, .font-bold.text-black { color: var(--text-color); }
+        .text-gray-700 { color: var(--subtle-text); }
+        
+        /* CSS cho Header */
+        .header-bar { background-color: var(--header-bg); border-bottom: 1px solid var(--header-border); color: var(--header-text); position: relative; padding: 6px 16px; }
+        .header-btn { background-color: #5a5a5a; border: 1px solid #7a7a7a; color: var(--header-text); border-radius: 4px; padding: 2px 8px; }
+        .header-btn:hover { background-color: #6a6a6a; }
+        #timer-display { font-size: 1rem; }
+        #timer-container { position: absolute; left: 50%; transform: translateX(-50%); }
+
+        /* Các class cho Cỡ chữ */
+        .font-size-normal { font-size: 14px; line-height: 1.5; }
+        .font-size-large { font-size: 16px; line-height: 1.6; }
+        .font-size-xl { font-size: 18px; line-height: 1.7; }
+
+        /* CSS giao diện chính */
+        .main-content { padding: 0; max-width: none; }
+        .writing-area, .prompt-panel { padding: 10px; height: 100%; border: 1px solid; overflow-y: auto; user-select: text; }
+        .writing-container { display: flex; flex-direction: column; height: calc(100vh - 76px); background-color: var(--panel-bg); border: 1px solid var(--panel-border); }
+        .writing-area-wrapper { flex-grow: 1; position: relative; }
+        .writing-area { resize: none; width: 100%; height: 100%; border: none; outline: none; }
+        
+        /* SỬA: CSS cho Word Count ở vị trí mới */
+        #word-count-display { 
+            padding: 4px 10px; 
+            font-size: 12px; 
+            font-weight: 600; 
+            text-align: right;
+            border-top: 1px solid var(--panel-border);
+            background-color: var(--panel-bg);
+            color: var(--text-color);
+        }
+
+        /* SỬA: CSS cho Footer và các nút */
+        .footer-bar { padding: 0; font-size: 13px; background-color: var(--footer-bg); border-top: 1px solid var(--footer-border); }
+        .footer-btn-group { padding: 8px 16px; }
+        .footer-tab-group { display: flex; align-items: flex-end; height: 100%; }
+        .task-footer-btn { 
+            padding: 6px 16px; 
+            font-weight: 600; 
+            border-radius: 4px 4px 0 0;
+            border: 1px solid var(--footer-border);
+            border-bottom: none;
+            background-color: #c7c7c7; 
+            color: #333;
+            margin-bottom: -1px; /* Che đường line của footer */
+        }
+        .task-footer-btn.active { 
+            background-color: var(--panel-bg); /* Màu trắng giống panel */
+            border-color: var(--panel-border);
+            border-bottom: 1px solid var(--panel-bg); /* Che đường line của footer */
+        }
+
+        /* Nút Help nhấp nháy */
+        @keyframes pulse-red { /* ... */ }
+        .flashing-button { /* ... */ }
+    </style>
+</head>
+<body class="font-size-normal">
+
+    <header id="header-bar" class="fixed top-0 left-0 right-0 z-10 flex header-bar justify-between items-center">
+        </header>
+
+    <main class="main-content h-full">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-0" style="height: calc(100vh - 76px);">
+            <div class="prompt-panel"> 
+                <h2 id="task-title" class="text-base font-bold mb-1">Part 1</h2>
+                <p id="task-instruction" class="text-sm mb-3 border-b pb-2">Read the text below...</p>
+                <div id="prompt-display">
+                    <div id="prompt-content" class="pr-2"><p class="italic mb-2">Loading...</p></div>
+                </div>
+            </div>
+            <div class="writing-container">
+                <div class="writing-area-wrapper">
+                    <textarea id="writing-task1-area" class="writing-area" style="display: none;"></textarea>
+                    <textarea id="writing-task2-area" class="writing-area"></textarea>
+                </div>
+                <div id="word-count-display">Word count: <span id="word-count" class="font-bold">0</span></div>
+            </div>
+        </div>
+    </main>
+    
+    <footer id="footer-bar" class="fixed bottom-0 left-0 right-0 z-10 flex footer-bar justify-between items-center">
+        <div class="footer-btn-group flex items-center space-x-2">
+            <button class="text-xs px-3 py-1 bg-gray-600 text-white rounded-md hover:bg-gray-500">Review</button>
+            <button onclick="finishAndSaveTest()" class="text-xs px-3 py-1 bg-green-600 text-white rounded-md hover:bg-green-700">Finish & Save</button>
+        </div>
+        <div class="footer-tab-group">
+            <button id="task1-btn" onclick="setTask(1)" class="task-footer-btn">Part 1</button>
+            <button id="task2-btn" onclick="setTask(2)" class="task-footer-btn active">Part 2</button>
+        </div>
+        <div class="footer-btn-group">
+            </div>
+    </footer>
+
+    <script>
+        // ... (toàn bộ code JavaScript của mày ở đây) ...
+    </script>
+</body>
+</html>
