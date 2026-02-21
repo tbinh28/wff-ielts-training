@@ -1,0 +1,26 @@
+[
+    {
+        "task": 1,
+        "type": "Bar Chart",
+        "title": "Monthly Income Spent",
+        "content": "The chart below shows the percentage of monthly income spent on four categories by two different income groups in 2023. Summarise the information by selecting and reporting the main features, and make comparisons where relevant."
+    },
+    {
+        "task": 1,
+        "type": "Line Graph",
+        "title": "Internet Users in Three Countries",
+        "content": "The line graph shows the percentage of the population who used the internet in three different countries from 1999 to 2009. Summarise the information by selecting and reporting the main features, and make comparisons where relevant."
+    },
+    {
+        "task": 2,
+        "type": "Discussion + Opinion",
+        "title": "Competition vs. Co-operation",
+        "content": "Some people think that a sense of competition in children should be encouraged. Others believe that children who are taught to co-operate rather than compete become more useful adults. Discuss both these views and give your own opinion."
+    },
+    {
+        "task": 2,
+        "type": "Agree or Disagree",
+        "title": "Unpaid Community Service",
+        "content": "Some people believe that unpaid community service should be a compulsory part of high school programmes (for example, working for a charity, improving the neighbourhood or teaching sports to younger children). To what extent do you agree or disagree?"
+    }
+]
