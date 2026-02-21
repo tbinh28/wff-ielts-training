@@ -1,0 +1,183 @@
+ <!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin - Prompt Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+    </style>
+</head>
+<body class="text-gray-800 p-8">
+
+    <main class="max-w-4xl mx-auto">
+        <h1 class="text-4xl font-bold text-gray-900 mb-2">Prompt Management Panel</h1>
+        <p class="text-gray-600 mb-8">Add, edit, or delete prompts for the main library. Changes will be live for all users.</p>
+
+        <div class="bg-white p-6 rounded-2xl shadow-lg mb-10 border">
+            <h2 id="form-title" class="text-2xl font-bold mb-4">Add a New Prompt</h2>
+            <input type="hidden" id="prompt-id"> <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <select id="prompt-task" class="col-span-1 p-3 border rounded-lg bg-gray-50">
+                    <option value="1">Task 1</option>
+                    <option value="2">Task 2</option>
+                </select>
+                <input type="text" id="prompt-type" placeholder="e.g., Line Graph, Discussion..." class="col-span-1 md:col-span-2 p-3 border rounded-lg bg-gray-50">
+            </div>
+            <input type="text" id="prompt-title" placeholder="Prompt Title (e.g., Unpaid Community Service)" class="w-full mt-4 p-3 border rounded-lg bg-gray-50">
+            <textarea id="prompt-content" rows="5" class="w-full mt-4 p-3 border rounded-lg bg-gray-50" placeholder="Paste your full prompt content here..."></textarea>
+            <div class="flex items-center gap-4 mt-4">
+                <button id="save-button" class="px-8 py-2 bg-purple-600 text-white font-bold rounded-full hover:bg-purple-700">Save Prompt</button>
+                <button id="cancel-button" class="px-8 py-2 bg-gray-200 text-gray-700 font-bold rounded-full hover:bg-gray-300 hidden">Cancel Edit</button>
+            </div>
+        </div>
+
+        <h2 class="text-2xl font-bold mb-4">Current Library</h2>
+        <div id="library-list" class="space-y-4">
+            <p>Loading prompts from Firebase...</p>
+        </div>
+    </main>
+
+    <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-firestore-compat.js"></script>
+
+    <script>
+        // --- CẤU HÌNH FIREBASE ---
+        // !!! THAY THẾ TOÀN BỘ CÁI NÀY BẰNG firebaseConfig CỦA MÀY !!!
+        const firebaseConfig = {
+            apiKey: "AIzaSyCyxAmlZHloA7UJMir0D5dYnY9VBI8XScY",
+            authDomain: "writing-for-free.firebaseapp.com",
+            projectId: "writing-for-free",
+            storageBucket: "writing-for-free.firebasestorage.app",
+            messagingSenderId: "33573519445",
+            appId: "1:33573519445:web:3215b19f6ca55a4ede94dc",
+            measurementId: "G-HYXZJ4DK86"
+        };
+
+        // Khởi tạo Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const promptsCollection = db.collection('prompts');
+
+        // --- Lấy các element trên trang ---
+        const libraryList = document.getElementById('library-list');
+        const saveButton = document.getElementById('save-button');
+        const cancelButton = document.getElementById('cancel-button');
+        const formTitle = document.getElementById('form-title');
+        
+        const idInput = document.getElementById('prompt-id');
+        const taskInput = document.getElementById('prompt-task');
+        const typeInput = document.getElementById('prompt-type');
+        const titleInput = document.getElementById('prompt-title');
+        const contentInput = document.getElementById('prompt-content');
+
+        // --- LOGIC CHÍNH ---
+
+        // Hàm để tải và hiển thị tất cả đề
+        async function loadPrompts() {
+            libraryList.innerHTML = '<p>Loading prompts...</p>';
+            const snapshot = await promptsCollection.orderBy('task').get();
+            
+            if (snapshot.empty) {
+                libraryList.innerHTML = '<p>No prompts found. Add one using the form above.</p>';
+                return;
+            }
+            
+            libraryList.innerHTML = '';
+            snapshot.forEach(doc => {
+                const prompt = doc.data();
+                const promptId = doc.id;
+                
+                const card = document.createElement('div');
+                card.className = 'bg-white p-4 rounded-xl shadow border flex justify-between items-center';
+                card.innerHTML = `
+                    <div>
+                        <p class="text-sm font-bold text-purple-700">Task ${prompt.task} - ${prompt.type}</p>
+                        <h3 class="font-semibold">${prompt.title}</h3>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="window.editPrompt('${promptId}', '${prompt.task}', '${prompt.type}', '${prompt.title}', \`${prompt.content}\`)" class="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full hover:bg-blue-200">Edit</button>
+                        <button onclick="window.deletePrompt('${promptId}')" class="text-xs bg-red-100 text-red-700 px-3 py-1 rounded-full hover:bg-red-200">Delete</button>
+                    </div>
+                `;
+                libraryList.appendChild(card);
+            });
+        }
+
+        // Hàm để reset form về trạng thái thêm mới
+        function resetForm() {
+            formTitle.innerText = 'Add a New Prompt';
+            idInput.value = '';
+            taskInput.value = '1';
+            typeInput.value = '';
+            titleInput.value = '';
+            contentInput.value = '';
+            cancelButton.classList.add('hidden');
+        }
+
+        // Gắn các hàm ra window để HTML gọi được
+        window.editPrompt = (id, task, type, title, content) => {
+            formTitle.innerText = 'Editing Prompt';
+            idInput.value = id;
+            taskInput.value = task;
+            typeInput.value = type;
+            titleInput.value = title;
+            contentInput.value = content;
+            cancelButton.classList.remove('hidden');
+            window.scrollTo(0, 0); // Cuộn lên đầu trang
+        }
+
+        window.deletePrompt = async (id) => {
+            if (!confirm('Are you sure you want to delete this prompt? This cannot be undone.')) return;
+            try {
+                await promptsCollection.doc(id).delete();
+                alert('Prompt deleted successfully!');
+                loadPrompts();
+            } catch (error) {
+                console.error("Error deleting document: ", error);
+                alert('Failed to delete prompt.');
+            }
+        }
+        
+        // Xử lý sự kiện click nút Save
+        saveButton.addEventListener('click', async () => {
+            const promptId = idInput.value;
+            
+            const data = {
+                task: parseInt(taskInput.value),
+                type: typeInput.value,
+                title: titleInput.value,
+                content: contentInput.value
+            };
+
+            if (!data.type || !data.title || !data.content) {
+                alert('Please fill in all fields.');
+                return;
+            }
+
+            try {
+                if (promptId) {
+                    // Update đề đã có
+                    await promptsCollection.doc(promptId).set(data, { merge: true });
+                    alert('Prompt updated successfully!');
+                } else {
+                    // Thêm đề mới
+                    await promptsCollection.add(data);
+                    alert('Prompt added successfully!');
+                }
+                resetForm();
+                loadPrompts();
+            } catch (error) {
+                console.error("Error saving document: ", error);
+                alert('Failed to save prompt.');
+            }
+        });
+        
+        // Nút cancel edit
+        cancelButton.addEventListener('click', resetForm);
+
+        // Tải đề lần đầu khi mở trang
+        document.addEventListener('DOMContentLoaded', loadPrompts);
+    </script>
+</body>
+</html>
